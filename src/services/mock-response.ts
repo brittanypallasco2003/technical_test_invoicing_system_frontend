@@ -2,8 +2,8 @@
  * Resolves like an API call would: asynchronously and with a copy, so callers
  * can never mutate the mock data by accident.
  *
- * Every service goes through here while the API is not wired, which leaves the
- * swap to `fetch` confined to the `services` folder.
+ * Services whose endpoint is not wired yet go through here, which leaves the
+ * swap to `apiGet` confined to the `services` folder.
  */
 export async function mockResponse<T>(data: T): Promise<T> {
   return structuredClone(data);

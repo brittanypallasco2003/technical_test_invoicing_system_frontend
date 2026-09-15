@@ -1,8 +1,7 @@
-import { taxesMock } from "@/mocks/taxes";
 import type { Tax } from "@/types/tax";
-import { mockResponse } from "./mock-response";
+import { apiGet } from "./api-client";
 
 /** `GET /taxes` */
 export function listTaxes(): Promise<Tax[]> {
-  return mockResponse(taxesMock);
+  return apiGet<Tax[]>("/taxes");
 }
