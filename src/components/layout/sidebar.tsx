@@ -29,9 +29,8 @@ function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
                 href={href}
                 onClick={onNavigate}
                 aria-current={isActive ? "page" : undefined}
-                title={collapsed ? label : undefined}
                 className={cn(
-                  "flex h-11 items-center gap-3 rounded-lg px-3 text-[15px] whitespace-nowrap transition-colors",
+                  "group relative flex h-11 items-center gap-3 rounded-lg px-3 text-[15px] whitespace-nowrap transition-colors",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stroke",
                   collapsed && "justify-center",
                   isActive
@@ -41,6 +40,21 @@ function SidebarNav({ collapsed = false, onNavigate }: SidebarNavProps) {
               >
                 <Icon className={cn("size-5 shrink-0", isActive ? "text-highlight" : "text-headline")} />
                 <span className={cn(collapsed && "sr-only")}>{label}</span>
+                {collapsed && (
+                  <span
+                    role="tooltip"
+                    className={cn(
+                      "pointer-events-none absolute top-1/2 left-full z-50 ml-3 -translate-y-1/2",
+                      "rounded-md bg-headline px-2.5 py-1.5 text-[13px] font-semibold text-card whitespace-nowrap",
+                      "invisible opacity-0 shadow-sm transition-opacity duration-150",
+                      "group-hover:visible group-hover:opacity-100",
+                      "group-focus-visible:visible group-focus-visible:opacity-100",
+                    )}
+                  >
+                    <span aria-hidden="true" className="absolute top-1/2 left-0 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-headline" />
+                    {label}
+                  </span>
+                )}
               </Link>
             </li>
           );
@@ -71,7 +85,7 @@ export function DesktopSidebar({ id, expanded, onCollapse }: DesktopSidebarProps
     <aside
       id={id}
       className={cn(
-        "hidden shrink-0 flex-col gap-1 overflow-hidden border-r-2 border-stroke bg-card p-3 lg:flex",
+        "relative hidden shrink-0 flex-col gap-1 border-r-2 border-stroke bg-card p-3 lg:flex",
         "transition-[width] duration-200 ease-out motion-reduce:transition-none",
         expanded ? "w-62" : "w-18",
       )}
