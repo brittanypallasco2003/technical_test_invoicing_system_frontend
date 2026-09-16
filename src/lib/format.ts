@@ -22,6 +22,12 @@ const dateFormatter = new Intl.DateTimeFormat(LOCALE, {
   year: "numeric",
 });
 
+const timestampFormatter = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: ISSUER_TIME_ZONE,
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
 /** `1254.3` → `$1.254,30` */
 export function formatCurrency(value: number): string {
   return currencyFormatter.format(value);
@@ -45,6 +51,14 @@ export function formatQuantity(value: number): string {
 export function formatIsoDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
+}
+
+/**
+ * An instant the API returns, read in the issuer's timezone rather than the
+ * browser's: an authorization stamped at 23:30 in Ecuador is not tomorrow.
+ */
+export function formatTimestamp(isoTimestamp: string): string {
+  return timestampFormatter.format(new Date(isoTimestamp));
 }
 
 /** Today's date as the issuer sees it, whatever the browser's timezone. */
