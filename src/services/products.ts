@@ -1,19 +1,32 @@
-import { productsMock } from "@/mocks/products";
-import type { Product } from "@/types/product";
-import { mockResponse, NotFoundError } from "./mock-response";
+import type { Product, ProductAvailability } from "@/types/product";
+import { apiGet } from "./api-client";
 
-/**
- * Product listing.
- *
- * The API does not expose `GET /products` yet (only `GET /products/:id`).
- */
+/** `GET /products` */
 export function listProducts(): Promise<Product[]> {
-  return mockResponse(productsMock);
+  return apiGet<Product[]>("/products");
 }
 
 /** `GET /products/:id` */
-export async function getProduct(id: string): Promise<Product> {
-  const product = productsMock.find((candidate) => candidate.id === id);
-  if (!product) throw new NotFoundError("Product", id);
-  return mockResponse(product);
+export function getProduct(id: string): Promise<Product> {
+  return apiGet<Product>(`/products/${encodeURIComponent(id)}`);
+}
+
+/**
+ * `GET /products/:id/availability?quantity=`
+ *
+ * A snapshot, not a reservation: someone else can take the last unit before the
+ * invoice is issued. It exists to warn while the form is being filled in,
+ * instead of ending in a 409 on submit.
+ */
+export function checkProductAvailability(
+  id: string,
+  quantity: number,
+  signal?: AbortSignal,
+): Promise<ProductAvailability> {
+  const query = new URLSearchParams({ quantity: String(quantity) });
+
+  return apiGet<ProductAvailability>(
+    `/products/${encodeURIComponent(id)}/availability?${query}`,
+    signal,
+  );
 }
