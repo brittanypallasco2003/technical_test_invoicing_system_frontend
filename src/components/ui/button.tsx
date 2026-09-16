@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "ghost-inverse";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "ghost-inverse";
 type ButtonSize = "md" | "icon";
 
 interface ButtonStyleOptions {
@@ -14,6 +14,7 @@ interface ButtonStyleOptions {
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: "bg-highlight text-headline hover:bg-highlight-hover",
   secondary: "border-[1.5px] border-stroke bg-card text-headline hover:bg-secondary",
+  danger: "border-[1.5px] border-danger-border bg-danger-soft text-danger-strong hover:border-danger",
   ghost: "text-headline hover:bg-secondary",
   "ghost-inverse": "text-card hover:bg-card/10",
 };
