@@ -18,12 +18,14 @@ import { Field, Input, Select, StaticField } from "@/components/ui/form-controls
 import { formatCurrency, formatQuantity, formatToday } from "@/lib/format";
 import { calculateLineSubtotal } from "@/lib/invoice-totals";
 import { IDENTIFICATION_TYPE_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
+import { ApiError } from "@/services/api-client";
 import { getEstablishment } from "@/services/establishments";
 import { createInvoice } from "@/services/invoices";
 import type { Customer } from "@/types/customer";
 import type { Establishment, IssuePoint } from "@/types/establishment";
 import type { Product } from "@/types/product";
 import {
+  availabilityErrors,
   itemFieldName,
   parseQuantity,
   PAYMENT_METHODS,
@@ -36,6 +38,7 @@ import {
   type InvoiceItemDraft,
 } from "./invoice-draft";
 import { InvoiceTotalsList } from "./invoice-totals-list";
+import { useProductAvailability } from "./use-product-availability";
 
 const INITIAL_DRAFT: InvoiceDraft = {
   establishmentId: "",
@@ -77,23 +80,31 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
   );
   const selectedCustomer = customers.find((customer) => customer.id === draft.customerId);
   const totals = previewDraftTotals(draft, productsById);
-  const errorCount = Object.keys(errors).length;
+
+  // Checked against the API while the form is filled in, so a line that ran out
+  // of stock elsewhere is marked before the user submits.
+  const availability = useProductAvailability(draft.items);
+  const stockErrors = availabilityErrors(draft.items, availability);
+  const errorCount = Object.keys(errors).length + Object.keys(stockErrors).length;
 
   const fieldId = (name: string) => `${formId}-${name.replaceAll(".", "-")}`;
+
+  /** What a field shows: what the user typed first, what the catalogue says after. */
+  const fieldError = (name: string) => errors[name] ?? stockErrors[name];
 
   /** Label and error wiring for `Field`. */
   const fieldProps = (label: string, name: string) => ({
     label,
     htmlFor: fieldId(name),
-    error: errors[name],
+    error: fieldError(name),
     errorId: `${fieldId(name)}-error`,
   });
 
   /** Accessibility wiring for the control inside a `Field`. */
   const controlProps = (name: string) => ({
     id: fieldId(name),
-    "aria-invalid": errors[name] ? true : undefined,
-    "aria-describedby": errors[name] ? `${fieldId(name)}-error` : undefined,
+    "aria-invalid": fieldError(name) ? true : undefined,
+    "aria-describedby": fieldError(name) ? `${fieldId(name)}-error` : undefined,
   });
 
   function clearErrors(...names: string[]) {
@@ -159,14 +170,19 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
 
     const validationErrors = validateInvoiceDraft(draft, productsById);
     setErrors(validationErrors);
-    if (Object.keys(validationErrors).length > 0) return;
+    // A line the catalogue already refuses would come back as a 409 anyway.
+    if (Object.keys(validationErrors).length > 0 || Object.keys(stockErrors).length > 0) return;
 
     startSubmitting(async () => {
       try {
         await createInvoice(toCreateInvoicePayload(draft));
         router.push("/facturas");
-      } catch {
-        setSubmitError("No se pudo emitir la factura. Inténtalo de nuevo.");
+      } catch (error) {
+        // A 409 says what the catalogue refused -- no stock, inactive customer,
+        // a sequential taken twice -- and that is worth more than a generic
+        // apology. Anything else gets one, because there is nothing to act on.
+        const detail = error instanceof ApiError ? error.detail : null;
+        setSubmitError(detail ?? "No se pudo emitir la factura. Inténtalo de nuevo.");
       }
     });
   }
