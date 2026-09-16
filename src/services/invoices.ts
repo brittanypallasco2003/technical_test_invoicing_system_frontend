@@ -1,6 +1,6 @@
 import { API_PROXY_PATH } from "@/lib/api-config";
 import type { CreateInvoicePayload, Invoice, InvoiceSummary } from "@/types/invoice";
-import { apiGet, apiPost } from "./api-client";
+import { apiGet, apiGetText, apiPost } from "./api-client";
 
 /** `GET /invoices` -- every issued document, newest first, without its lines. */
 export function listInvoices(): Promise<InvoiceSummary[]> {
@@ -24,11 +24,21 @@ export function createInvoice(payload: CreateInvoicePayload): Promise<Invoice> {
 }
 
 /**
- * `GET /invoices/:id/xml`
+ * `GET /invoices/:id/xml`, as text to display.
  *
- * A URL and not a request: the response is a file with a `Content-Disposition`
- * of its own, so the browser downloads it from a link instead of the app
- * fetching the XML into memory only to hand it back.
+ * The endpoint sends `Content-Disposition: attachment`, so pointing a tab at it
+ * downloads the file instead of showing it. Reading the body here is what lets
+ * the app render the document on screen.
+ */
+export function getInvoiceXml(id: string, signal?: AbortSignal): Promise<string> {
+  return apiGetText(`/invoices/${encodeURIComponent(id)}/xml`, signal);
+}
+
+/**
+ * The same endpoint as a URL, for the download link.
+ *
+ * A link and not a request: the response already carries the filename the SRI
+ * convention wants, so the browser does the saving.
  */
 export function invoiceXmlUrl(id: string): string {
   return `${API_PROXY_PATH}/invoices/${encodeURIComponent(id)}/xml`;
