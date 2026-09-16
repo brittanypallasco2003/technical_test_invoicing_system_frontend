@@ -9,6 +9,8 @@ import { groupTaxBreakdown } from "@/lib/invoice-totals";
 import { IDENTIFICATION_TYPE_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
 import { invoiceXmlUrl } from "@/services/invoices";
 import type { Invoice, InvoiceItem } from "@/types/invoice";
+import { InvoiceDeleteButton } from "./invoice-delete";
+import { InvoiceEditor } from "./invoice-editor";
 import { InvoiceTotalsList } from "./invoice-totals-list";
 import { InvoiceXmlViewer } from "./invoice-xml";
 
@@ -26,7 +28,15 @@ const itemColumns: DataTableColumn<InvoiceItem>[] = [
   },
 ];
 
-export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
+interface InvoiceDetailViewProps {
+  detail: Promise<Invoice>;
+  /** Called after the API accepts a correction. */
+  onCorrected: () => void;
+  /** Called after the API accepts a deletion. */
+  onDeleted: () => void;
+}
+
+export function InvoiceDetailView({ detail, onCorrected, onDeleted }: InvoiceDetailViewProps) {
   const invoice = use(detail);
 
   return (
@@ -61,6 +71,7 @@ export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
           ]}
         />
         <div className="flex flex-wrap gap-2.5">
+          <InvoiceEditor invoice={invoice} onCorrected={onCorrected} />
           <InvoiceXmlViewer invoiceId={invoice.id} number={invoice.number} />
           {/* A link and not a button: the response is a file, and the browser
               already knows what to do with the filename the API sends. */}
@@ -71,6 +82,7 @@ export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
           >
             Descargar XML
           </a>
+          <InvoiceDeleteButton invoice={invoice} onDeleted={onDeleted} />
         </div>
       </DetailSection>
 

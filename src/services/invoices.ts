@@ -1,6 +1,11 @@
 import { API_PROXY_PATH } from "@/lib/api-config";
-import type { CreateInvoicePayload, Invoice, InvoiceSummary } from "@/types/invoice";
-import { apiGet, apiGetText, apiPost } from "./api-client";
+import type {
+  CreateInvoicePayload,
+  Invoice,
+  InvoiceSummary,
+  UpdateInvoicePayload,
+} from "@/types/invoice";
+import { apiDelete, apiGet, apiGetText, apiPatch, apiPost } from "./api-client";
 
 /** `GET /invoices` -- every issued document, newest first, without its lines. */
 export function listInvoices(): Promise<InvoiceSummary[]> {
@@ -21,6 +26,29 @@ export function getInvoice(id: string): Promise<Invoice> {
  */
 export function createInvoice(payload: CreateInvoicePayload): Promise<Invoice> {
   return apiPost<Invoice>("/invoices", payload);
+}
+
+/**
+ * `PATCH /invoices/:id`
+ *
+ * Corrects a rejected invoice and sends it again: the answer comes back in
+ * QUEUED, like issuing. 409 when the document is past correcting -- already
+ * authorized, or still on its way to the SRI.
+ */
+export function updateInvoice(id: string, payload: UpdateInvoicePayload): Promise<Invoice> {
+  return apiPatch<Invoice>(`/invoices/${encodeURIComponent(id)}`, payload);
+}
+
+/**
+ * `DELETE /invoices/:id`
+ *
+ * Discards an invoice that never became a document, and answers 204. It is not
+ * anulación: an authorized comprobante is voided through a separate fiscal
+ * process, and the API refuses this with a 409. The deletion is logical, so the
+ * number stays consumed -- the SRI expects gapless numbering.
+ */
+export function deleteInvoice(id: string): Promise<void> {
+  return apiDelete(`/invoices/${encodeURIComponent(id)}`);
 }
 
 /**

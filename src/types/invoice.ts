@@ -83,6 +83,23 @@ export interface CreateInvoiceItemPayload {
   quantity: number;
 }
 
+/**
+ * `UpdateInvoiceDto`: the only two fields a correction may change.
+ *
+ * The absences are the rule: a correction may not change the totals, because
+ * the SRI adds the document up again when it validates it. Lines, quantities,
+ * issue point, number and access key are therefore out -- an invoice with other
+ * lines is a different invoice, and it is issued, not corrected.
+ *
+ * Both are optional: an empty body regenerates the XML and sends it again
+ * unchanged, which is how a rejection that was not the issuer's fault is
+ * retried.
+ */
+export interface UpdateInvoicePayload {
+  customerId?: string;
+  paymentMethod?: PaymentMethod;
+}
+
 /** `CreateInvoiceDto`: prices, taxes and totals are computed by the server. */
 export interface CreateInvoicePayload {
   customerId: string;
