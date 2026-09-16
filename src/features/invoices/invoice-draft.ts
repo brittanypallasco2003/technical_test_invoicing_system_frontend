@@ -1,6 +1,7 @@
+import { formatQuantity } from "@/lib/format";
 import { calculateInvoiceTotals, type InvoiceTotals } from "@/lib/invoice-totals";
 import { PaymentMethod, type CreateInvoicePayload } from "@/types/invoice";
-import type { Product } from "@/types/product";
+import type { Product, ProductAvailability } from "@/types/product";
 
 /** Form state: inputs stay strings until the payload is built. */
 export interface InvoiceItemDraft {
@@ -36,6 +37,11 @@ export function parseQuantity(value: string): number | null {
   return Number.isFinite(quantity) ? quantity : null;
 }
 
+/** One wording for the two checks that report stock: the local one and the live one. */
+function stockMessage(stock: number): string {
+  return stock > 0 ? `Solo quedan ${formatQuantity(stock)} en stock.` : "Sin stock disponible.";
+}
+
 export function validateInvoiceDraft(
   draft: InvoiceDraft,
   productsById: ReadonlyMap<string, Product>,
@@ -58,7 +64,33 @@ export function validateInvoiceDraft(
     if (quantity === null || quantity <= 0) {
       errors[itemFieldName(item.key, "quantity")] = "Ingresa una cantidad mayor a 0.";
     } else if (product && quantity > product.stock) {
-      errors[itemFieldName(item.key, "quantity")] = `Stock disponible: ${product.stock}.`;
+      errors[itemFieldName(item.key, "quantity")] = stockMessage(product.stock);
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * What the availability check found, as field errors.
+ *
+ * The stock loaded with the page can be minutes old; these answers are the
+ * catalogue as it stands right now, so they are what stops the submit.
+ */
+export function availabilityErrors(
+  items: readonly InvoiceItemDraft[],
+  availability: ReadonlyMap<string, ProductAvailability>,
+): InvoiceDraftErrors {
+  const errors: InvoiceDraftErrors = {};
+
+  for (const item of items) {
+    const answer = availability.get(item.key);
+    if (!answer || answer.available) continue;
+
+    if (answer.reason === "NOT_ACTIVE") {
+      errors[itemFieldName(item.key, "productId")] = "El producto ya no está disponible.";
+    } else {
+      errors[itemFieldName(item.key, "quantity")] = stockMessage(answer.stock);
     }
   }
 

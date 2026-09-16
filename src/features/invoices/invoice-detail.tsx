@@ -1,13 +1,16 @@
 "use client";
 
 import { use } from "react";
+import { buttonStyles } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { DescriptionList, DetailBody, DetailSection } from "@/components/ui/detail";
-import { formatCurrency, formatIsoDate, formatQuantity } from "@/lib/format";
+import { formatCurrency, formatIsoDate, formatQuantity, formatTimestamp } from "@/lib/format";
 import { groupTaxBreakdown } from "@/lib/invoice-totals";
 import { IDENTIFICATION_TYPE_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
+import { invoiceXmlUrl } from "@/services/invoices";
 import type { Invoice, InvoiceItem } from "@/types/invoice";
 import { InvoiceTotalsList } from "./invoice-totals-list";
+import { InvoiceXmlViewer } from "./invoice-xml";
 
 const itemColumns: DataTableColumn<InvoiceItem>[] = [
   { id: "mainCode", header: "Código", cell: (item) => item.mainCode, mono: true },
@@ -28,10 +31,22 @@ export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
 
   return (
     <DetailBody>
+      {invoice.rejectionReason && (
+        <p className="rounded-lg border-[1.5px] border-danger bg-danger-soft/40 p-3 text-[13.5px] leading-snug text-headline">
+          <span className="font-semibold">El SRI rechazó el comprobante: </span>
+          {invoice.rejectionReason}
+        </p>
+      )}
+
       <DetailSection title="Emisión">
         <DescriptionList
           items={[
             { label: "Fecha de emisión", value: formatIsoDate(invoice.issueDate), mono: true },
+            {
+              label: "Autorizada",
+              value: invoice.authorizedAt ? formatTimestamp(invoice.authorizedAt) : null,
+              mono: true,
+            },
             {
               label: "Establecimiento · Punto de emisión",
               value: `${invoice.establishmentCode} · ${invoice.issuePointCode}`,
@@ -45,6 +60,18 @@ export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
             { label: "Clave de acceso", value: invoice.accessKey, mono: true, fullWidth: true },
           ]}
         />
+        <div className="flex flex-wrap gap-2.5">
+          <InvoiceXmlViewer invoiceId={invoice.id} number={invoice.number} />
+          {/* A link and not a button: the response is a file, and the browser
+              already knows what to do with the filename the API sends. */}
+          <a
+            href={invoiceXmlUrl(invoice.id)}
+            download={`${invoice.accessKey}.xml`}
+            className={buttonStyles({ variant: "secondary" })}
+          >
+            Descargar XML
+          </a>
+        </div>
       </DetailSection>
 
       <DetailSection title="Comprador">

@@ -6,7 +6,7 @@ import { listCustomers } from "@/services/customers";
 export const metadata: Metadata = { title: "Clientes" };
 
 export default async function CustomersPage() {
-  const { data: customers } = await listCustomers();
+  const customers = await listCustomers();
 
   return (
     <div className="flex flex-col gap-5">

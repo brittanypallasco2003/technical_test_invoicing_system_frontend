@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, use } from "react";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
-import { DescriptionList } from "@/components/ui/detail";
+import { DescriptionList, DetailSkeleton } from "@/components/ui/detail";
 import { Modal } from "@/components/ui/dialog";
 import { RecordStatusBadge } from "@/features/shared/status-badges";
+import { useRecordDetail } from "@/hooks/use-record-detail";
 import { formatRate } from "@/lib/format";
 import { TAX_CODE_LABELS } from "@/lib/labels";
+import { getTax } from "@/services/taxes";
 import type { Tax } from "@/types/tax";
 
 const columns: DataTableColumn<Tax>[] = [
@@ -17,9 +19,27 @@ const columns: DataTableColumn<Tax>[] = [
   { id: "status", header: "Estado", cell: (tax) => <RecordStatusBadge status={tax.status} /> },
 ];
 
+/**
+ * `GET /taxes/:id` answers the same DTO as the listing, so this adds no field.
+ * What it adds is freshness: a rate the catalogue changed after the page was
+ * rendered is what the modal shows.
+ */
+function TaxDetailView({ detail }: { detail: Promise<Tax> }) {
+  const tax = use(detail);
+
+  return (
+    <DescriptionList
+      items={[
+        { label: "Impuesto", value: `${tax.code} · ${TAX_CODE_LABELS[tax.code] ?? "Otro"}` },
+        { label: "Código de porcentaje", value: tax.percentageCode, mono: true },
+        { label: "Tarifa", value: formatRate(tax.rate), mono: true },
+      ]}
+    />
+  );
+}
+
 export function TaxesTable({ taxes }: { taxes: Tax[] }) {
-  // The catalogue has no detail endpoint: the row already holds every field.
-  const [selectedTax, setSelectedTax] = useState<Tax | null>(null);
+  const { selection, open, close } = useRecordDetail((tax: Tax) => getTax(tax.id));
 
   return (
     <>
@@ -29,28 +49,21 @@ export function TaxesTable({ taxes }: { taxes: Tax[] }) {
         rows={taxes}
         getRowId={(tax) => String(tax.id)}
         getRowLabel={(tax) => tax.name}
-        onRowSelect={setSelectedTax}
-        selectedRowId={selectedTax ? String(selectedTax.id) : null}
+        onRowSelect={open}
+        selectedRowId={selection ? String(selection.row.id) : null}
         emptyMessage="No hay impuestos registrados."
       />
-      {selectedTax && (
+      {selection && (
         <Modal
           open
-          onClose={() => setSelectedTax(null)}
+          onClose={close}
           eyebrow="Impuesto"
-          title={selectedTax.name}
-          meta={<RecordStatusBadge status={selectedTax.status} />}
+          title={selection.row.name}
+          meta={<RecordStatusBadge status={selection.row.status} />}
         >
-          <DescriptionList
-            items={[
-              {
-                label: "Impuesto",
-                value: `${selectedTax.code} · ${TAX_CODE_LABELS[selectedTax.code] ?? "Otro"}`,
-              },
-              { label: "Código de porcentaje", value: selectedTax.percentageCode, mono: true },
-              { label: "Tarifa", value: formatRate(selectedTax.rate), mono: true },
-            ]}
-          />
+          <Suspense fallback={<DetailSkeleton />}>
+            <TaxDetailView detail={selection.detail} />
+          </Suspense>
         </Modal>
       )}
     </>

@@ -40,8 +40,8 @@ export interface InvoiceItem {
   taxAmount: number;
 }
 
-/** `InvoiceResponseDto` */
-export interface Invoice {
+/** `InvoiceSummaryResponseDto`: the whole document except its lines. */
+export interface InvoiceSummary {
   id: string;
   /** `001-001-000000042` */
   number: string;
@@ -55,32 +55,27 @@ export interface Invoice {
   buyerIdentificationType: IdentificationType;
   buyerIdentification: string;
   buyerBusinessName: string;
-  buyerAddress: string | null;
   totalWithoutTaxes: number;
   totalDiscount: number;
   totalVat: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
   invoiceStatus: InvoiceStatus;
+  /** ISO timestamp; `null` until the SRI authorizes it, and forever if it refuses. */
+  authorizedAt: string | null;
+  /** Why the SRI refused it, `null` otherwise. */
+  rejectionReason: string | null;
   status: Status;
-  items: InvoiceItem[];
 }
 
 /**
- * The fields the invoice listing shows.
- *
- * The API has no listing endpoint yet; this is the shape the table expects so
- * the endpoint can be added without touching the UI.
+ * `InvoiceResponseDto`: what the listing carries, plus the two fields only the
+ * detail endpoint returns.
  */
-export type InvoiceSummary = Pick<
-  Invoice,
-  | "id"
-  | "number"
-  | "issueDate"
-  | "buyerBusinessName"
-  | "totalAmount"
-  | "invoiceStatus"
->;
+export interface Invoice extends InvoiceSummary {
+  buyerAddress: string | null;
+  items: InvoiceItem[];
+}
 
 /** `CreateInvoiceItemDto` */
 export interface CreateInvoiceItemPayload {
