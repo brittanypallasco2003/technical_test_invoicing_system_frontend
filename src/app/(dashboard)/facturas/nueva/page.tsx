@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Nueva factura" };
 export default async function NewInvoicePage() {
   const [establishments, customers, products] = await Promise.all([
     listEstablishments(),
-    listCustomers({ limit: 100 }),
+    listCustomers(),
     listProducts(),
   ]);
 
@@ -26,7 +26,7 @@ export default async function NewInvoicePage() {
       />
       <InvoiceForm
         establishments={establishments.filter(isActive)}
-        customers={customers.data.filter(isActive)}
+        customers={customers.filter(isActive)}
         products={products.filter(isActive)}
       />
     </div>
