@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { API_PROXY_PATH, API_URL } from "./src/lib/api-config";
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -7,6 +8,14 @@ const nextConfig: NextConfig = {
         source: "/",
         destination: "/facturas",
         permanent: false,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: `${API_PROXY_PATH}/:path*`,
+        destination: `${API_URL}/:path*`,
       },
     ];
   },
