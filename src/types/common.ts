@@ -20,20 +20,3 @@ export const IdentificationType = {
 } as const;
 export type IdentificationType =
   (typeof IdentificationType)[keyof typeof IdentificationType];
-
-export interface PaginationQuery {
-  page?: number;
-  limit?: number;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginationMeta;
-}
