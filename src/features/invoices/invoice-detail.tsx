@@ -10,6 +10,7 @@ import { IDENTIFICATION_TYPE_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels"
 import { invoiceXmlUrl } from "@/services/invoices";
 import type { Invoice, InvoiceItem } from "@/types/invoice";
 import { InvoiceTotalsList } from "./invoice-totals-list";
+import { InvoiceXmlViewer } from "./invoice-xml";
 
 const itemColumns: DataTableColumn<InvoiceItem>[] = [
   { id: "mainCode", header: "Código", cell: (item) => item.mainCode, mono: true },
@@ -59,15 +60,18 @@ export function InvoiceDetailView({ detail }: { detail: Promise<Invoice> }) {
             { label: "Clave de acceso", value: invoice.accessKey, mono: true, fullWidth: true },
           ]}
         />
-        {/* A link and not a button: the response is a file, and the browser
-            already knows what to do with the filename the API sends. */}
-        <a
-          href={invoiceXmlUrl(invoice.id)}
-          download={`${invoice.accessKey}.xml`}
-          className={buttonStyles({ variant: "secondary", className: "self-start" })}
-        >
-          Descargar XML
-        </a>
+        <div className="flex flex-wrap gap-2.5">
+          <InvoiceXmlViewer invoiceId={invoice.id} number={invoice.number} />
+          {/* A link and not a button: the response is a file, and the browser
+              already knows what to do with the filename the API sends. */}
+          <a
+            href={invoiceXmlUrl(invoice.id)}
+            download={`${invoice.accessKey}.xml`}
+            className={buttonStyles({ variant: "secondary" })}
+          >
+            Descargar XML
+          </a>
+        </div>
       </DetailSection>
 
       <DetailSection title="Comprador">
