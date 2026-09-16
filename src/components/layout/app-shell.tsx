@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           open={isMobileOpen && !isDesktop}
           onClose={() => setIsMobileOpen(false)}
         />
-        <main id="contenido" className="min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-7">
+        <main id="contenido" className="relative min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-7">
           {children}
         </main>
       </div>
