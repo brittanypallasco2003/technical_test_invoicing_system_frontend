@@ -18,6 +18,7 @@ import { Field, Input, Select, StaticField } from "@/components/ui/form-controls
 import { formatCurrency, formatQuantity, formatToday } from "@/lib/format";
 import { calculateLineSubtotal } from "@/lib/invoice-totals";
 import { IDENTIFICATION_TYPE_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/labels";
+import { CustomerCombobox } from "@/features/customers/customer-combobox";
 import { ApiError } from "@/services/api-client";
 import { getEstablishment } from "@/services/establishments";
 import { createInvoice } from "@/services/invoices";
@@ -37,6 +38,7 @@ import {
   type InvoiceDraftErrors,
   type InvoiceItemDraft,
 } from "./invoice-draft";
+import { issuedHref } from "./invoice-flash";
 import { InvoiceTotalsList } from "./invoice-totals-list";
 import { useProductAvailability } from "./use-product-availability";
 
@@ -54,17 +56,19 @@ const subscribeToNothing = () => () => {};
 
 interface InvoiceFormProps {
   establishments: Establishment[];
-  customers: Customer[];
   products: Product[];
 }
 
-export function InvoiceForm({ establishments, customers, products }: InvoiceFormProps) {
+export function InvoiceForm({ establishments, products }: InvoiceFormProps) {
   const router = useRouter();
   const formId = useId();
   const nextItemKey = useRef(1);
   const latestEstablishmentId = useRef("");
 
   const [draft, setDraft] = useState<InvoiceDraft>(INITIAL_DRAFT);
+  // The customer is searched, not listed, so the form holds the chosen record:
+  // the draft carries its id and this is what the summary below reads.
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [errors, setErrors] = useState<InvoiceDraftErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [issuePoints, setIssuePoints] = useState<IssuePoint[]>([]);
@@ -78,7 +82,6 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
-  const selectedCustomer = customers.find((customer) => customer.id === draft.customerId);
   const totals = previewDraftTotals(draft, productsById);
 
   // Checked against the API while the form is filled in, so a line that ran out
@@ -140,6 +143,11 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
     clearErrors(itemFieldName(key, "productId"), itemFieldName(key, "quantity"));
   }
 
+  function handleCustomerSelect(customer: Customer | null) {
+    setSelectedCustomer(customer);
+    updateDraft({ customerId: customer?.id ?? "" }, "customerId");
+  }
+
   function handleEstablishmentChange(establishmentId: string) {
     latestEstablishmentId.current = establishmentId;
     updateDraft({ establishmentId, issuePointId: "" }, "establishmentId", "issuePointId");
@@ -175,8 +183,10 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
 
     startSubmitting(async () => {
       try {
-        await createInvoice(toCreateInvoicePayload(draft));
-        router.push("/facturas");
+        const invoice = await createInvoice(toCreateInvoicePayload(draft));
+        // The listing announces it and watches the SRI answer arrive; issuing
+        // only answers QUEUED, so there is nothing to confirm here yet.
+        router.push(issuedHref(invoice.number));
       } catch (error) {
         // A 409 says what the catalogue refused -- no stock, inactive customer,
         // a sequential taken twice -- and that is worth more than a generic
@@ -233,18 +243,11 @@ export function InvoiceForm({ establishments, customers, products }: InvoiceForm
 
         <Card title="Cliente">
           <Field {...fieldProps("Cliente", "customerId")}>
-            <Select
+            <CustomerCombobox
               {...controlProps("customerId")}
-              value={draft.customerId}
-              onChange={(event) => updateDraft({ customerId: event.target.value }, "customerId")}
-            >
-              <option value="">Selecciona un cliente…</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {`${customer.businessName} · ${customer.identification}`}
-                </option>
-              ))}
-            </Select>
+              selected={selectedCustomer}
+              onSelect={handleCustomerSelect}
+            />
           </Field>
           {selectedCustomer && (
             <DescriptionList

@@ -41,7 +41,11 @@ async function errorDetail(response: Response): Promise<string | null> {
   }
 }
 
-async function request(method: "GET" | "POST", path: string, init?: RequestInit): Promise<Response> {
+async function request(
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   // `no-store` because the data lives in the database: a copy taken at
   // `next build` would hide an UPDATE until the next deploy, and would make the
   // build itself depend on the API being up.
@@ -68,12 +72,25 @@ export async function apiGetText(path: string, signal?: AbortSignal): Promise<st
   return response.text();
 }
 
+function jsonBody(body: unknown): RequestInit {
+  return { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+}
+
 /** POST against the NestJS API, sending and parsing JSON. */
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const response = await request("POST", path, {
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const response = await request("POST", path, jsonBody(body));
 
   return response.json() as Promise<T>;
+}
+
+/** PATCH against the NestJS API, sending and parsing JSON. */
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const response = await request("PATCH", path, jsonBody(body));
+
+  return response.json() as Promise<T>;
+}
+
+/** DELETE against the NestJS API. It answers 204, so there is no body to read. */
+export async function apiDelete(path: string): Promise<void> {
+  await request("DELETE", path);
 }
