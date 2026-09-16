@@ -41,7 +41,7 @@ async function errorDetail(response: Response): Promise<string | null> {
   }
 }
 
-async function request<T>(method: "GET" | "POST", path: string, init?: RequestInit): Promise<T> {
+async function request(method: "GET" | "POST", path: string, init?: RequestInit): Promise<Response> {
   // `no-store` because the data lives in the database: a copy taken at
   // `next build` would hide an UPDATE until the next deploy, and would make the
   // build itself depend on the API being up.
@@ -51,18 +51,29 @@ async function request<T>(method: "GET" | "POST", path: string, init?: RequestIn
     throw new ApiError(response.status, method, path, await errorDetail(response));
   }
 
-  return response.json() as Promise<T>;
+  return response;
 }
 
 /** GET against the NestJS API, parsed as JSON. */
-export function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
-  return request<T>("GET", path, { signal });
+export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await request("GET", path, { signal });
+
+  return response.json() as Promise<T>;
+}
+
+/** GET for the one endpoint that answers a document instead of JSON: the XML. */
+export async function apiGetText(path: string, signal?: AbortSignal): Promise<string> {
+  const response = await request("GET", path, { signal });
+
+  return response.text();
 }
 
 /** POST against the NestJS API, sending and parsing JSON. */
-export function apiPost<T>(path: string, body: unknown): Promise<T> {
-  return request<T>("POST", path, {
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const response = await request("POST", path, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
+  return response.json() as Promise<T>;
 }
